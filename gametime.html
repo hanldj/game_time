@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>電玩時間管理</title>
+    <style>
+        :root {
+            --primary: #007AFF; /* iOS Blue */
+            --danger: #FF3B30;  /* iOS Red */
+            --bg: #F2F2F7;      /* iOS Grouped BG */
+            --card: #FFFFFF;
+            --text: #000000;
+            --subtext: #8E8E93;
+            --border: #C6C6C8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Calendar Header */
+        header {
+            background-color: var(--card);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        h1 { margin: 0; font-size: 18px; font-weight: 600; }
+        .controls { display: flex; justify-content: space-between; margin-top: 10px; align-items: center; }
+        .btn-text { background: none; border: none; color: var(--primary); font-size: 16px; cursor: pointer; }
+
+        /* Calendar Grid */
+        .calendar {
+            background: var(--card);
+            padding-bottom: 10px;
+        }
+        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 12px; color: var(--subtext); padding: 5px 0; }
+        .days { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+        .day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            position: relative;
+            cursor: pointer;
+            border-radius: 50%;
+            margin: 2px;
+        }
+        .day.today { color: var(--primary); font-weight: bold; }
+        .day.selected { background-color: var(--text); color: white; border-radius: 50%; }
+        .day.has-data::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background-color: var(--subtext);
+            border-radius: 50%;
+        }
+
+        /* Detail View (Bottom Sheet style) */
+        .detail-view {
+            padding: 20px 15px;
+            background-color: var(--bg);
+            min-height: calc(100vh - 350px);
+        }
+        .date-title { font-size: 22px; font-weight: bold; margin-bottom: 15px; padding-left: 5px; }
+
+        /* Child Card */
+        .kid-card {
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .kid-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .kid-name { font-size: 18px; font-weight: 600; border: none; background: transparent; width: 60%; }
+        .kid-name:focus { border-bottom: 1px solid var(--primary); outline: none; }
+
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .stat-label { color: var(--subtext); }
+        .stat-val { font-weight: 500; font-family: monospace; font-size: 15px; }
+        .stat-val.editable { border-bottom: 1px dashed var(--border); color: var(--primary); cursor: pointer; }
+
+        .action-area {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .input-time {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+        }
+        .btn-action {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .btn-action:disabled { background-color: var(--subtext); }
+
+        .history-text { font-size: 14px; color: var(--subtext); margin-top: 10px; text-align: center; }
+
+        /* Toast Notification */
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 25px;
+            padding: 16px;
+            position: fixed;
+            z-index: 101;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+        }
+        #toast.show { visibility: visible; -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>電玩時光存摺</h1>
+    <div class="controls">
+        <button class="btn-text" onclick="changeMonth(-1)">❮</button>
+        <span id="currentMonthYear" style="font-weight:600; font-size: 16px;"></span>
+        <button class="btn-text" onclick="changeMonth(1)">❯</button>
+    </div>
+</header>
+
+<div class="calendar">
+    <div class="weekdays">
+        <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+    </div>
+    <div class="days" id="calendarDays"></div>
+</div>
+
+<div class="detail-view">
+    <div class="date-title" id="selectedDateTitle">請選擇日期</div>
+    <div id="kidsContainer"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // --- Data Management ---
+    const STORAGE_KEY = 'gameTimeData_v1';
+
+    // 初始化數據 (預設為您的三位小朋友)
+    let appData = {
+        kids: [
+            { id: 0, name: "Lionel", bank: 0 },
+            { id: 1, name: "Yosie", bank: 0 },
+            { id: 2, name: "Yvonne", bank: 0 }
+        ],
+        logs: {} // Format: "YYYY-MM-DD": { kidId: minutesPlayed }
+    };
+
+    function loadData() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            appData = JSON.parse(saved);
+        } else {
+            saveData();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+    }
+
+    // --- Date Helpers ---
+    let currentDate = new Date();
+    let selectedDate = new Date();
+
+    function getFormattedDate(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    function isToday(date) {
+        const today = new Date();
+        return date.getDate() === today.getDate() &&
+               date.getMonth() === today.getMonth() &&
+               date.getFullYear() === today.getFullYear();
+    }
+
+    // --- Calendar UI ---
+    function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        document.getElementById('currentMonthYear').innerText = `${year}年 ${month + 1}月`;
+
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysContainer = document.getElementById('calendarDays');
+        daysContainer.innerHTML = '';
+
+        // Empty slots for previous month
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            daysContainer.appendChild(document.createElement('div'));
+        }
+
+        // Days
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+            const dayEl = document.createElement('div');
+            dayEl.classList.add('day');
+            dayEl.innerText = i;
+
+            const renderDate = new Date(year, month, i);
+            const dateStr = getFormattedDate(renderDate);
+
+            if (isToday(renderDate)) dayEl.classList.add('today');
+            if (dateStr === getFormattedDate(selectedDate)) dayEl.classList.add('selected');
+            if (appData.logs[dateStr]) dayEl.classList.add('has-data');
+
+            dayEl.onclick = () => {
+                selectedDate = renderDate;
+                renderCalendar(); // Re-render to update selection
+                renderDetails();
+            };
+
+            daysContainer.appendChild(dayEl);
+        }
+    }
+
+    function changeMonth(delta) {
+        currentDate.setMonth(currentDate.getMonth() + delta);
+        renderCalendar();
+    }
+
+    // --- Core Logic & Detail UI ---
+
+    // 計算邏輯：根據遊玩時間更新儲蓄
+    // 規則：
+    // 1. 基本：+15分/天 (不玩就是存15)
+    // 2. 使用：先扣當日15，再扣存款
+    // 3. 上限：當日遊玩上限 30 (15原+15存)
+    // 4. 懲罰：超過30，超時部分兩倍扣除
+    // 公式推導：
+    // Delta (存款變化) = 15 - 遊玩時間
+    // If 遊玩時間 > 30: Penalty = (遊玩時間 - 30).
+    // Total Change = Delta - Penalty.
+    // 例 33分: Delta = 15-33 = -18. Penalty = 3. Total = -21. (正確：扣原15 + 扣存15 + 扣罰3 + 扣罰3 = 存-21)
+    // 例 10分: Delta = 15-10 = +5. Penalty = 0. Total = +5.
+    function calculateBankChange(playedMinutes) {
+        let delta = 15 - playedMinutes;
+        if (playedMinutes > 30) {
+            delta -= (playedMinutes - 30); // 額外扣除一次超時部分
+        }
+        return delta;
+    }
+
+    function renderDetails() {
+        const dateStr = getFormattedDate(selectedDate);
+        const isFuture = selectedDate > new Date() && !isToday(selectedDate);
+        const container = document.getElementById('kidsContainer');
+
+        // Update Title
+        const dayNames = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
+        document.getElementById('selectedDateTitle').innerText =
+            `${selectedDate.getMonth() + 1}/${selectedDate.getDate()} ${dayNames[selectedDate.getDay()]}`;
+
+        container.innerHTML = '';
+
+        appData.kids.forEach(kid => {
+            const kidLog = appData.logs[dateStr] ? appData.logs[dateStr][kid.id] : null;
+            const hasPlayed = kidLog !== undefined && kidLog !== null;
+
+            // 計算今日剩餘可玩時間 (Max 30, but limited by Bank)
+            // 可玩 = 15 (今日) + Math.min(15, Bank)
+            // 如果 Bank < 0, 則可能影響今日額度? 假設 Bank < 0 則無法提領，只能玩今日的 15 甚至更少?
+            // 簡化規則：如果 Bank < 0，還是給今日 15，但還債優先?
+            // 依照需求： "如果儲蓄時間足夠...提取最多15分鐘"。
+            // 顯示邏輯：
+            let maxFromBank = Math.max(0, Math.min(15, kid.bank));
+            let todayPlayable = 15 + maxFromBank;
+            // 如果今天已經玩過了，顯示他玩了多久
+
+            const card = document.createElement('div');
+            card.className = 'kid-card';
+
+            let html = `
+                <div class="kid-header">
+                    <input type="text" class="kid-name" value="${kid.name}" onchange="updateName(${kid.id}, this.value)">
+                    <span style="font-size:24px;">🎮</span>
+                </div>
+
+                <div class="stat-row">
+                    <span class="stat-label">目前總儲蓄:</span>
+                    <span class="stat-val editable" onclick="manualEditBank(${kid.id})">${kid.bank} 分鐘</span>
+                </div>
+            `;
+
+            if (isFuture) {
+                html += `<div class="history-text">未來日期不可操作</div>`;
+            } else if (hasPlayed) {
+                // 已經有紀錄
+                html += `
+                    <div class="stat-row">
+                        <span class="stat-label">當日紀錄:</span>
+                        <span class="stat-val" style="color:var(--primary)">已遊玩 ${kidLog} 分鐘</span>
+                    </div>
+                    <div class="history-text">本日已結算 (若需修改請手動調整儲蓄)</div>
+                `;
+            } else {
+                // 尚未紀錄 (通常是今天)
+                html += `
+                    <div class="stat-row">
+                        <span class="stat-label">今日上限:</span>
+                        <span class="stat-val">${todayPlayable} 分鐘 (15 + ${maxFromBank})</span>
+                    </div>
+                    <div class="action-area">
+                        <input type="number" id="input-${kid.id}" class="input-time" placeholder="輸入今日遊玩分鐘" inputmode="numeric">
+                        <button class="btn-action" onclick="submitPlayTime(${kid.id})">確認扣除</button>
+                    </div>
+                    <div style="font-size:12px; color:#888; margin-top:5px;">*輸入 0 則存下今日時間</div>
+                `;
+            }
+
+            card.innerHTML = html;
+            container.appendChild(card);
+        });
+    }
+
+    // --- Actions ---
+
+    function updateName(id, newName) {
+        const kid = appData.kids.find(k => k.id === id);
+        if (kid) {
+            kid.name = newName;
+            saveData();
+            showToast("名字已更新");
+        }
+    }
+
+    function manualEditBank(id) {
+        const kid = appData.kids.find(k => k.id === id);
+        const newVal = prompt(`修改 ${kid.name} 的儲蓄時間 (目前 ${kid.bank} 分鐘):`, kid.bank);
+        if (newVal !== null && !isNaN(newVal)) {
+            kid.bank = parseInt(newVal);
+            saveData();
+            renderDetails();
+            showToast("儲蓄時間已手動更新");
+        }
+    }
+
+    function submitPlayTime(id) {
+        const input = document.getElementById(`input-${id}`);
+        const val = input.value;
+
+        if (val === "") {
+            alert("請輸入時間");
+            return;
+        }
+
+        const minutesPlayed = parseInt(val);
+        if (minutesPlayed < 0) {
+            alert("時間不能為負數");
+            return;
+        }
+
+        // 執行邏輯
+        const kid = appData.kids.find(k => k.id === id);
+        const change = calculateBankChange(minutesPlayed);
+
+        // 更新數據
+        kid.bank += change;
+
+        // 紀錄 Log
+        const dateStr = getFormattedDate(selectedDate);
+        if (!appData.logs[dateStr]) appData.logs[dateStr] = {};
+        appData.logs[dateStr][id] = minutesPlayed;
+
+        saveData();
+        renderCalendar(); // Update dots
+        renderDetails();  // Update view
+
+        let msg = "";
+        if (change > 0) msg = `存入 ${change} 分鐘！`;
+        else msg = `扣除 ${Math.abs(change)} 分鐘 (含懲罰/消耗)`;
+        showToast(`${kid.name}: ${msg}`);
+    }
+
+    function showToast(text) {
+        const x = document.getElementById("toast");
+        x.innerText = text;
+        x.className = "show";
+        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+    }
+
+    // Start
+    loadData();
+    renderCalendar();
+    renderDetails();
+
+</script>
+
+</body>
+</html>
