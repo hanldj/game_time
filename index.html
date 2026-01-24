@@ -3,449 +3,471 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>每日電玩時間管理</title>
+    <title>複利時間銀行 (定時發薪版)</title>
     <style>
         :root {
-            --primary: #007aff;
-            --bg: #f2f2f7;
-            --card: #ffffff;
-            --text: #000000;
-            --text-sec: #8e8e93;
-            --danger: #ff3b30;
-            --success: #34c759;
-            --separator: #c6c6c8;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-primary: #1f2937;
+            --lionel-color: #3b82f6;
+            --yosie-color: #8b5cf6;
+            --yvonne-color: #ec4899;
+            --toast-bg: rgba(0, 0, 0, 0.85);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
+            font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
+            background-color: var(--bg-color);
             margin: 0;
-            padding: 0;
-            color: var(--text);
-            -webkit-tap-highlight-color: transparent;
+            padding: 16px;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Calendar Header */
-        .header {
-            background-color: var(--card);
-            padding: 15px;
-            text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 50px;
         }
-        .header h1 { margin: 0; font-size: 18px; font-weight: 600; }
-        .nav-btn { background: none; border: none; color: var(--primary); font-size: 16px; cursor: pointer; padding: 5px 10px; }
 
-        /* Calendar Grid */
-        .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); padding: 10px 0; background: var(--card); text-align: center; font-size: 12px; color: var(--text-sec); }
-        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background-color: var(--bg); padding-bottom: 20px; }
-        .day {
-            background-color: var(--card);
-            height: 80px;
-            padding: 5px;
+        .header {
+            text-align: center;
+            margin-bottom: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #374151;
+        }
+
+        .header .subtitle {
+            font-size: 0.8rem;
+            color: #10b981;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 20px 16px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            cursor: pointer;
+            border-top: 5px solid #ccc;
             position: relative;
-        }
-        .day.today { background-color: #eef5ff; }
-        .day.selected { background-color: #d0e3ff; }
-        .day-num { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
-        .day.today .day-num { color: var(--primary); font-weight: 700; }
-
-        /* Indicators */
-        .dots { display: flex; gap: 2px; }
-        .dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--separator); }
-        .dot.played { background-color: var(--success); }
-        .dot.over { background-color: var(--danger); }
-
-        /* Modal/Panel */
-        .panel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--card);
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-            transform: translateY(100%);
-            transition: transform 0.3s ease-out;
-            z-index: 100;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding-bottom: 30px;
-        }
-        .panel.open { transform: translateY(0); }
-
-        .panel-header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--separator);
-            position: sticky;
-            top: 0;
-            background: var(--card);
-            z-index: 101;
-        }
-        .panel-title { font-size: 17px; font-weight: 600; }
-        .close-btn { color: var(--primary); font-weight: 600; border: none; background: none; font-size: 16px; cursor: pointer; }
-
-        .kid-card {
-            padding: 20px;
-            border-bottom: 10px solid var(--bg);
-        }
-        .kid-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .kid-name-input {
-            font-size: 20px; font-weight: 700; border: none; border-bottom: 1px dashed #ccc;
-            width: 150px; color: var(--text); background: transparent;
+            overflow: hidden;
+            transition: transform 0.2s;
         }
 
-        .stat-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-        .stat-box {
-            background-color: var(--bg);
-            border-radius: 10px;
-            padding: 10px;
+        .card[data-id="p1"] { border-color: var(--lionel-color); }
+        .card[data-id="p2"] { border-color: var(--yosie-color); }
+        .card[data-id="p3"] { border-color: var(--yvonne-color); }
+
+        input.name-input {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #4b5563;
+            border: 1px solid transparent;
+            background: transparent;
             text-align: center;
+            width: 100%;
+            margin-bottom: 5px;
+            border-radius: 4px;
         }
-        .stat-label { font-size: 12px; color: var(--text-sec); margin-bottom: 5px; }
-        .stat-value-group { display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .stat-input {
-            width: 60px; text-align: center; font-size: 18px; font-weight: 600;
-            border: 1px solid #ddd; border-radius: 6px; padding: 5px;
-            -moz-appearance: textfield;
-        }
-        .stat-input::-webkit-outer-spin-button,
-        .stat-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-        .control-section { margin-top: 10px; }
-        .quick-btn-group { display: flex; gap: 10px; margin-top: 10px; }
-        .btn {
-            flex: 1;
-            padding: 10px;
+        input.name-input:focus {
+            border-color: #ccc;
+            background: #f9fafb;
+            outline: none;
+        }
+
+        .time-wrapper {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            margin: 10px 0 20px 0;
+            width: 100%;
+        }
+
+        input.time-input {
+            font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #111827;
+            border: 1px solid transparent;
+            background: transparent;
+            text-align: center;
+            width: 340px;
+            max-width: 80%;
             border-radius: 8px;
+            padding: 0 5px;
+        }
+
+        @media (max-width: 360px) {
+            input.time-input { font-size: 2rem; }
+        }
+
+        input.time-input:focus {
+            background: #fffbe6;
+            border-color: #fbbf24;
+            outline: none;
+        }
+
+        .unit {
+            font-size: 1rem;
+            color: #9ca3af;
+            margin-left: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            flex-shrink: 0;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+        }
+
+        button {
             border: none;
-            font-size: 14px;
-            font-weight: 500;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            background-color: var(--bg);
-            color: var(--primary);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            touch-action: manipulation;
         }
-        .btn:active { opacity: 0.7; }
-        .btn-primary { background-color: var(--primary); color: white; }
 
-        .over-warning { color: var(--danger); font-size: 12px; margin-top: 5px; display: none; }
-        .over-warning.show { display: block; }
-        .limit-info { font-size: 10px; color: #666; margin-top: 4px; }
+        button:active { transform: scale(0.96); opacity: 0.9; }
 
-        /* Overlay */
-        .overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.3);
-            z-index: 90;
-            display: none;
+        .btn-plus-10 { background-color: #4338ca; }
+        .btn-plus-5 { background-color: #3b82f6; }
+        .btn-plus-1 { background-color: #10b981; }
+
+        .btn-minus-1 { background-color: #f59e0b; }
+        .btn-minus-5 { background-color: #ef4444; }
+        .btn-minus-10 { background-color: #b91c1c; }
+
+        .rate-info {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            margin-top: 10px;
+            text-align: center;
+            line-height: 1.4;
         }
-        .overlay.show { display: block; }
+
+        .editable-hint {
+            font-size: 0.6rem;
+            color: #d1d5db;
+            margin-bottom: 2px;
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+            width: 90%;
+            align-items: center;
+        }
+
+        .toast {
+            background-color: var(--toast-bg);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInOut 4s forwards;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
     </style>
 </head>
 <body>
 
-<div class="header">
-    <button class="nav-btn" id="prevMonth">❮</button>
-    <h1 id="currentMonthLabel">2026年 1月</h1>
-    <button class="nav-btn" id="nextMonth">❯</button>
-</div>
-
-<div class="weekdays">
-    <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
-</div>
-
-<div class="calendar" id="calendarGrid">
-    </div>
-
-<div class="overlay" id="overlay"></div>
-
-<div class="panel" id="detailPanel">
-    <div class="panel-header">
-        <span class="panel-title" id="selectedDateLabel">1月1日</span>
-        <button class="close-btn" id="closePanel">完成</button>
-    </div>
-    <div id="kidsContainer">
+    <div class="container">
+        <div class="header">
+            <h1>複利時間銀行</h1>
+            <div class="subtitle">01:20 自動發薪 +15分 • 日利 0.5%</div>
         </div>
-</div>
 
-<script>
-    // --- Data & State ---
-    const MAX_DAILY_PLAY = 30; // 每日最大上限
-    const BASE_DAILY = 15;     // 每日基本額度
+        <div class="card" data-id="p1">
+            <div class="editable-hint">✎ 點擊改名</div>
+            <input type="text" class="name-input" id="name-p1" onchange="updateName('p1', this.value)">
 
-    // Default data structure
-    const defaultData = {
-        kids: [
-            { id: 1, name: "小朋友 1", savings: 0 },
-            { id: 2, name: "小朋友 2", savings: 0 },
-            { id: 3, name: "小朋友 3", savings: 0 }
-        ],
-        records: {} // Format: "YYYY-MM-DD": { kidId: playedMinutes }
-    };
+            <div class="time-wrapper">
+                <input type="number" class="time-input" id="val-p1" step="0.00001"
+                       onfocus="startEditing('p1')"
+                       onblur="finishEditing('p1', this.value)"
+                       onkeydown="if(event.key === 'Enter') this.blur()">
+                <span class="unit">分</span>
+            </div>
 
-    let appData = JSON.parse(localStorage.getItem('gameTimeData')) || defaultData;
-    let currentDate = new Date();
-    let selectedDate = null; // String "YYYY-MM-DD"
+            <div class="btn-grid">
+                <button class="btn-plus-10" onclick="transaction('p1', 10)">+10</button>
+                <button class="btn-plus-5" onclick="transaction('p1', 5)">+5</button>
+                <button class="btn-plus-1" onclick="transaction('p1', 1)">+1</button>
+                <button class="btn-minus-10" onclick="transaction('p1', -10)">-10</button>
+                <button class="btn-minus-5" onclick="transaction('p1', -5)">-5</button>
+                <button class="btn-minus-1" onclick="transaction('p1', -1)">-1</button>
+            </div>
+            <div class="rate-info">每日 01:20 自動入帳 15 分鐘</div>
+        </div>
 
-    // --- Core Logic ---
+        <div class="card" data-id="p2">
+            <div class="editable-hint">✎ 點擊改名</div>
+            <input type="text" class="name-input" id="name-p2" onchange="updateName('p2', this.value)">
 
-    function saveData() {
-        localStorage.setItem('gameTimeData', JSON.stringify(appData));
-    }
+            <div class="time-wrapper">
+                <input type="number" class="time-input" id="val-p2" step="0.00001"
+                       onfocus="startEditing('p2')"
+                       onblur="finishEditing('p2', this.value)"
+                       onkeydown="if(event.key === 'Enter') this.blur()">
+                <span class="unit">分</span>
+            </div>
 
-    function getPlayedTime(dateStr, kidId) {
-        if (!appData.records[dateStr]) return 0;
-        return appData.records[dateStr][kidId] || 0;
-    }
+            <div class="btn-grid">
+                <button class="btn-plus-10" onclick="transaction('p2', 10)">+10</button>
+                <button class="btn-plus-5" onclick="transaction('p2', 5)">+5</button>
+                <button class="btn-plus-1" onclick="transaction('p2', 1)">+1</button>
+                <button class="btn-minus-10" onclick="transaction('p2', -10)">-10</button>
+                <button class="btn-minus-5" onclick="transaction('p2', -5)">-5</button>
+                <button class="btn-minus-1" onclick="transaction('p2', -1)">-1</button>
+            </div>
+            <div class="rate-info">每日 01:20 自動入帳 15 分鐘</div>
+        </div>
 
-    function setPlayedTime(dateStr, kidId, minutes) {
-        if (!appData.records[dateStr]) appData.records[dateStr] = {};
+        <div class="card" data-id="p3">
+            <div class="editable-hint">✎ 點擊改名</div>
+            <input type="text" class="name-input" id="name-p3" onchange="updateName('p3', this.value)">
 
-        const oldMinutes = appData.records[dateStr][kidId] || 0;
-        appData.records[dateStr][kidId] = minutes;
+            <div class="time-wrapper">
+                <input type="number" class="time-input" id="val-p3" step="0.00001"
+                       onfocus="startEditing('p3')"
+                       onblur="finishEditing('p3', this.value)"
+                       onkeydown="if(event.key === 'Enter') this.blur()">
+                <span class="unit">分</span>
+            </div>
 
-        // 計算舊的扣除額 vs 新的扣除額，更新總儲蓄
-        const oldDeduction = calculateDeduction(oldMinutes);
-        const newDeduction = calculateDeduction(minutes);
+            <div class="btn-grid">
+                <button class="btn-plus-10" onclick="transaction('p3', 10)">+10</button>
+                <button class="btn-plus-5" onclick="transaction('p3', 5)">+5</button>
+                <button class="btn-plus-1" onclick="transaction('p3', 1)">+1</button>
+                <button class="btn-minus-10" onclick="transaction('p3', -10)">-10</button>
+                <button class="btn-minus-5" onclick="transaction('p3', -5)">-5</button>
+                <button class="btn-minus-1" onclick="transaction('p3', -1)">-1</button>
+            </div>
+            <div class="rate-info">每日 01:20 自動入帳 15 分鐘</div>
+        </div>
+    </div>
 
-        // 儲蓄變化 = 舊扣除額 - 新扣除額 (若扣除變少，儲蓄增加；扣除變多，儲蓄減少)
-        const diff = oldDeduction - newDeduction;
+    <div id="toast-container"></div>
 
-        const kid = appData.kids.find(k => k.id === kidId);
-        kid.savings += diff;
-        saveData();
-    }
+    <script>
+        // --- 設定區 ---
+        const DAILY_RATE = 0.005; // 0.5% 日利率
+        const SALARY_AMOUNT = 15; // 每日薪水 (分)
+        const SALARY_HOUR = 1;    // 凌晨 1 點
+        const SALARY_MINUTE = 20; // 20 分
+        const MS_IN_DAY = 1000 * 60 * 60 * 24;
 
-    // 計算從儲蓄中扣除的額度 (含超時懲罰)
-    // 規則：前15分鐘免費。
-    // 16~30分鐘：扣 1x (每分鐘扣1)
-    // 30+ 分鐘：前15分免費，中間15分扣15，超過部分扣 2x
-    function calculateDeduction(minutes) {
-        if (minutes <= BASE_DAILY) {
-            return 0; // 沒用到儲蓄
-        } else if (minutes <= MAX_DAILY_PLAY) {
-            return minutes - BASE_DAILY; // 扣掉基本額度，剩下從儲蓄扣
-        } else {
-            // 超過30分鐘
-            const normalSavingsUse = MAX_DAILY_PLAY - BASE_DAILY; // 15
-            const overTime = minutes - MAX_DAILY_PLAY;
-            return normalSavingsUse + (overTime * 2); // 15 + 超時*2
-        }
-    }
+        // 預設資料
+        // lastSalaryCheck: 上次檢查發薪的時間戳記 (預設為現在，避免第一次打開就發薪，除非你希望)
+        const defaultData = {
+            p1: { name: "Lionel", balance: 30, lastUpdate: Date.now(), lastSalaryCheck: Date.now() },
+            p2: { name: "Yosie", balance: 70, lastUpdate: Date.now(), lastSalaryCheck: Date.now() },
+            p3: { name: "Yvonne", balance: 50, lastUpdate: Date.now(), lastSalaryCheck: Date.now() }
+        };
 
-    // 反推：為了計算「今日上限」，我們需要知道「還沒玩之前的儲蓄」
-    // 如果現在已經玩了，現在的 kid.savings 已經被扣過了。
-    // 所以：原始儲蓄 = 目前顯示儲蓄 + 目前遊玩的扣除額
-    function getOriginalSavings(kidId, dateStr) {
-        const kid = appData.kids.find(k => k.id === kidId);
-        const currentPlayed = getPlayedTime(dateStr, kidId);
-        const currentDeduction = calculateDeduction(currentPlayed);
-        return kid.savings + currentDeduction;
-    }
+        // 讀取資料 (版本號 v4 以區隔舊資料)
+        let appData = JSON.parse(localStorage.getItem('compoundTimeBank_v4')) || defaultData;
 
-    // --- UI Rendering ---
+        // 資料遷移防呆
+        ['p1', 'p2', 'p3'].forEach(pid => {
+            if (!appData[pid].lastSalaryCheck) {
+                appData[pid].lastSalaryCheck = Date.now();
+            }
+        });
 
-    const calendarGrid = document.getElementById('calendarGrid');
-    const currentMonthLabel = document.getElementById('currentMonthLabel');
-    const overlay = document.getElementById('overlay');
-    const detailPanel = document.getElementById('detailPanel');
-    const selectedDateLabel = document.getElementById('selectedDateLabel');
-    const kidsContainer = document.getElementById('kidsContainer');
+        let editingState = { p1: false, p2: false, p3: false };
 
-    function renderCalendar(date) {
-        calendarGrid.innerHTML = '';
-        const year = date.getFullYear();
-        const month = date.getMonth();
+        function init() {
+            initRender();
+            checkSalary(); // 檢查發薪
+            animate();
 
-        currentMonthLabel.innerText = `${year}年 ${month + 1}月`;
-
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        for (let i = 0; i < firstDay; i++) {
-            const div = document.createElement('div');
-            calendarGrid.appendChild(div);
-        }
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const el = document.createElement('div');
-            el.className = 'day';
-
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (dateStr === todayStr) el.classList.add('today');
-
-            const num = document.createElement('div');
-            num.className = 'day-num';
-            num.innerText = d;
-            el.appendChild(num);
-
-            const dots = document.createElement('div');
-            dots.className = 'dots';
-            appData.kids.forEach(kid => {
-                const played = getPlayedTime(dateStr, kid.id);
-                if (played > 0) {
-                    const dot = document.createElement('div');
-                    dot.className = `dot ${played > MAX_DAILY_PLAY ? 'over' : 'played'}`;
-                    dots.appendChild(dot);
+            // 每次切換回網頁都檢查一次
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === 'visible') {
+                    checkSalary();
                 }
             });
-            el.appendChild(dots);
-
-            el.onclick = () => openDate(dateStr);
-            calendarGrid.appendChild(el);
         }
-    }
 
-    function openDate(dateStr) {
-        selectedDate = dateStr;
-        selectedDateLabel.innerText = dateStr.replace(/-/g, '/');
-        renderKidsUI();
-        overlay.classList.add('show');
-        detailPanel.classList.add('open');
-    }
+        // --- 核心：薪水發放邏輯 ---
+        function checkSalary() {
+            const now = Date.now();
+            let anyUpdate = false;
 
-    function closePanel() {
-        overlay.classList.remove('show');
-        detailPanel.classList.remove('open');
-        renderCalendar(currentDate);
-    }
+            ['p1', 'p2', 'p3'].forEach(pid => {
+                const data = appData[pid];
 
-    function renderKidsUI() {
-        kidsContainer.innerHTML = '';
-        appData.kids.forEach(kid => {
-            const played = getPlayedTime(selectedDate, kid.id);
+                // 1. 找出「上一次檢查點」之後的「下一個 01:20 AM」
+                // 我們使用迴圈來補足這段時間內所有錯過的薪水
+                let checkCursor = new Date(data.lastSalaryCheck);
 
-            // 核心邏輯修改：計算今日上限
-            // 1. 還原原始儲蓄 (假設還沒玩之前)
-            const originalSavings = getOriginalSavings(kid.id, selectedDate);
+                // 產生一個「理論上的下一次領薪時間」
+                // 先設為檢查點當天的 01:20
+                let nextPayTime = new Date(checkCursor);
+                nextPayTime.setHours(SALARY_HOUR, SALARY_MINUTE, 0, 0);
 
-            // 2. 決定今日上限： 15 (基本) + 儲蓄 (但總和不能超過30)
-            // 如果儲蓄是0 -> 上限15
-            // 如果儲蓄是5 -> 上限20
-            // 如果儲蓄是67 -> 上限30
-            const dailyCap = Math.min(MAX_DAILY_PLAY, BASE_DAILY + Math.max(0, originalSavings));
+                // 如果這個時間點已經在檢查點之前，代表當天的已經領過了，目標是明天
+                if (nextPayTime.getTime() <= checkCursor.getTime()) {
+                    nextPayTime.setDate(nextPayTime.getDate() + 1);
+                }
 
-            // 3. 計算剩餘
-            let remaining = dailyCap - played;
+                let salaryCount = 0;
 
-            const card = document.createElement('div');
-            card.className = 'kid-card';
+                // 2. 迴圈檢查：只要「下一次領薪時間」早於「現在」，就發薪
+                while (nextPayTime.getTime() <= now) {
+                    salaryCount++;
+                    // 往後推一天
+                    nextPayTime.setDate(nextPayTime.getDate() + 1);
+                }
 
-            card.innerHTML = `
-                <div class="kid-header">
-                    <input type="text" class="kid-name-input" value="${kid.name}" onchange="updateName(${kid.id}, this.value)">
-                </div>
+                // 3. 如果有累積薪水要發
+                if (salaryCount > 0) {
+                    // 先結算利息更新到現在
+                    const timeDiff = now - data.lastUpdate;
+                    const daysPassed = timeDiff / MS_IN_DAY;
+                    let currentBalance = data.balance * Math.pow((1 + DAILY_RATE), daysPassed);
 
-                <div class="stat-grid">
-                    <div class="stat-box">
-                        <div class="stat-label">目前總儲蓄 (分)</div>
-                        <div class="stat-value-group">
-                            <input type="number" class="stat-input" value="${kid.savings}" onchange="updateSavings(${kid.id}, this.value)">
-                        </div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">今日已玩 (分)</div>
-                        <div class="stat-value-group">
-                            <input type="number" class="stat-input" id="played-${kid.id}" value="${played}" onchange="handlePlayedChange(${kid.id}, this.value)">
-                        </div>
-                         <div class="over-warning ${played > MAX_DAILY_PLAY ? 'show' : ''}">已超時! 雙倍扣除</div>
-                    </div>
-                </div>
+                    // 發薪水
+                    const totalSalary = salaryCount * SALARY_AMOUNT;
+                    currentBalance += totalSalary;
 
-                <div class="stat-box" style="margin-bottom:10px; background:#eef5ff;">
-                    <div class="stat-label">今日剩餘可玩 (分)</div>
-                    <div class="stat-value-group">
-                        <input type="number" class="stat-input" style="background:transparent; border-color:#aac;" value="${remaining}" onchange="handleRemainingChange(${kid.id}, this.value)">
-                    </div>
-                    <div class="limit-info">(今日上限 ${dailyCap} 分鐘)</div>
-                </div>
+                    // 記錄與通知
+                    data.balance = currentBalance;
+                    data.lastUpdate = now;
+                    data.lastSalaryCheck = now; // 更新檢查點到現在
 
-                <div class="control-section">
-                    <div style="font-size:12px; color:#888;">快速增加時間:</div>
-                    <div class="quick-btn-group">
-                        <button class="btn" onclick="addTime(${kid.id}, 5)">+5分</button>
-                        <button class="btn" onclick="addTime(${kid.id}, 15)">+15分</button>
-                        <button class="btn btn-primary" onclick="addTime(${kid.id}, 30)">+30分</button>
-                    </div>
-                </div>
-            `;
-            kidsContainer.appendChild(card);
-        });
-    }
+                    showToast(`${data.name}: 發放薪資 ${salaryCount} 次 (共 +${totalSalary} 分)`);
+                    anyUpdate = true;
+                }
+            });
 
-    // --- Interaction Handlers ---
+            if (anyUpdate) {
+                saveData();
+            }
+        }
 
-    window.updateName = (id, newName) => {
-        const kid = appData.kids.find(k => k.id === id);
-        kid.name = newName;
-        saveData();
-    };
+        function initRender() {
+            document.getElementById('name-p1').value = appData.p1.name;
+            document.getElementById('name-p2').value = appData.p2.name;
+            document.getElementById('name-p3').value = appData.p3.name;
+        }
 
-    window.updateSavings = (id, newVal) => {
-        const kid = appData.kids.find(k => k.id === id);
-        kid.savings = parseInt(newVal) || 0;
-        // 儲蓄改動會影響今日上限，必須重繪
-        saveData();
-        renderKidsUI();
-    };
+        function animate() {
+            const now = Date.now();
 
-    window.handlePlayedChange = (id, newTime) => {
-        const time = parseInt(newTime) || 0;
-        setPlayedTime(selectedDate, id, time);
-        renderKidsUI();
-    };
+            ['p1', 'p2', 'p3'].forEach(pid => {
+                if (editingState[pid]) return;
 
-    window.handleRemainingChange = (id, newRemaining) => {
-        // 反推： Played = Cap - Remaining
-        // 我們需要再算一次 Cap
-        const originalSavings = getOriginalSavings(id, selectedDate);
-        const dailyCap = Math.min(MAX_DAILY_PLAY, BASE_DAILY + Math.max(0, originalSavings));
+                const data = appData[pid];
+                const timeDiff = now - data.lastUpdate;
+                const daysPassed = timeDiff / MS_IN_DAY;
+                const currentAmount = data.balance * Math.pow((1 + DAILY_RATE), daysPassed);
 
-        const rem = parseInt(newRemaining);
-        const newPlayed = dailyCap - rem;
+                const el = document.getElementById(`val-${pid}`);
+                if (el) el.value = currentAmount.toFixed(5);
+            });
 
-        handlePlayedChange(id, newPlayed);
-    };
+            requestAnimationFrame(animate);
+        }
 
-    window.addTime = (id, minutes) => {
-        const currentPlayed = getPlayedTime(selectedDate, id);
-        handlePlayedChange(id, currentPlayed + minutes);
-    };
+        function updateName(pid, newName) {
+            appData[pid].name = newName;
+            saveData();
+        }
 
-    document.getElementById('prevMonth').onclick = () => {
-        currentDate.setMonth(currentDate.getMonth() - 1);
-        renderCalendar(currentDate);
-    };
-    document.getElementById('nextMonth').onclick = () => {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        renderCalendar(currentDate);
-    };
+        function startEditing(pid) {
+            editingState[pid] = true;
+        }
 
-    document.getElementById('closePanel').onclick = closePanel;
-    document.getElementById('overlay').onclick = closePanel;
+        function finishEditing(pid, newValStr) {
+            let newVal = parseFloat(newValStr);
+            if (isNaN(newVal)) newVal = 0;
+            if (newVal < 0) newVal = 0;
 
-    // Init
-    renderCalendar(currentDate);
+            const now = Date.now();
+            appData[pid].balance = newVal;
+            appData[pid].lastUpdate = now;
+            // 手動修改不影響發薪檢查點 (lastSalaryCheck)
 
-</script>
+            saveData();
+            editingState[pid] = false;
+        }
+
+        function transaction(pid, amount) {
+            const now = Date.now();
+            const data = appData[pid];
+
+            const timeDiff = now - data.lastUpdate;
+            const daysPassed = timeDiff / MS_IN_DAY;
+            let currentRealBalance = data.balance * Math.pow((1 + DAILY_RATE), daysPassed);
+
+            currentRealBalance += amount;
+            if (currentRealBalance < 0) currentRealBalance = 0;
+
+            data.balance = currentRealBalance;
+            data.lastUpdate = now;
+            saveData();
+
+            const el = document.getElementById(`val-${pid}`);
+            el.value = currentRealBalance.toFixed(5);
+        }
+
+        function saveData() {
+            localStorage.setItem('compoundTimeBank_v4', JSON.stringify(appData));
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 4000);
+        }
+
+        init();
+
+    </script>
 </body>
 </html>
